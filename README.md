@@ -18,7 +18,7 @@ Where, for a specific request, `type` tells which request protocol was used (e.g
 
 In detail:
 
-1. The `request_seconds_bucket` metric defines the histogram of how many requests are falling into the well defined buckets represented by the label `le`;
+1. The `request_seconds_bucket` metric defines the histogram of how many requests are falling into the well-defined buckets represented by the label `le`;
 
 2. The `request_seconds_count` is a counter that counts the overall number of requests with those exact label occurrences;
 
@@ -26,7 +26,7 @@ In detail:
 
 4. The `response_size_bytes` is a counter that computes how much data is being sent back to the user for a given request type. It captures the response size from the `content-length` response header. If there is no such header, the value exposed as metric will be zero;
 
-5. Finally, `dependency_up` is a metric to register weather a specific dependency is up (1) or down (0). The label `name` registers the dependency name;
+5. Finally, `dependency_up` is a metric to register whether a specific dependency is up (1) or down (0). The label `name` registers the dependency name;
 
 ## How to
 
@@ -55,7 +55,7 @@ The collector filter can be programmatically added to `javax.servlet.ServletCont
 
 You just need to place the code below in your `web.xml` file.
 
-The number of buckets is optionally overridable, and can be configured by passing a comma-separated string of doubles as the `buckets` init parameter. 
+The number of buckets is optionally overridable and can be configured by passing a comma-separated string of doubles as the `buckets` init parameter. 
 The `buckets` default value is `0.1, 0.3, 1.5, 10.5`.
  
 ```xml
