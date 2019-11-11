@@ -116,6 +116,10 @@ long periodIntervalInMillis = 15000;
 MonitorMetrics.INSTANCE.addDependencyChecker(fakeChecker, periodIntervalInMillis);
 ```
 
+## Example
+
+You can find a basic project example [here](https://github.com/werberson/servlet-sample).
+
 ## Big Brother
 
 This is part of a more large application called [Big Brother](https://github.com/labbsr0x/big-brother).
