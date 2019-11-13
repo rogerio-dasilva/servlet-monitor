@@ -8,33 +8,45 @@ import java.io.PrintWriter;
 
 public class CountingServletResponse extends HttpServletResponseWrapper {
 
-    private final CountingServletOutputStream output;
-    private final PrintWriter writer;
+    private final boolean debug;
+    private final HttpServletResponse response;
+    private CountingServletOutputStream output;
+    private CountingPrintWriter writer;
 
-    CountingServletResponse(HttpServletResponse response) throws IOException {
+    CountingServletResponse(HttpServletResponse response, boolean debug) throws IOException {
         super(response);
-        output = new CountingServletOutputStream(response.getOutputStream());
-        writer = new PrintWriter(output, true);
+        this.response = response;
+        this.debug = debug;
     }
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
+        if(output == null){
+            output = new CountingServletOutputStream(response.getOutputStream(), debug);
+        }
         return output;
     }
 
     @Override
     public PrintWriter getWriter() throws IOException {
+        if(writer == null){
+            writer = new CountingPrintWriter(response.getWriter(), debug);
+        }
         return writer;
     }
 
     @Override
     public void flushBuffer() throws IOException {
-        writer.flush();
+        response.flushBuffer();
     }
 
     long getByteCount() throws IOException {
-        flushBuffer(); // Ensure that all bytes are written at this point.
-        return output.getByteCount();
+        if(output != null){
+            return output.getByteCount();    
+        } else if(writer != null){
+            return writer.getCount();
+        }
+        return 0;
     }
 
     String getStatusRange() {

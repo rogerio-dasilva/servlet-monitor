@@ -9,8 +9,12 @@ public class CountingServletOutputStream extends ServletOutputStream {
 
     private final CountingOutputStream output;
 
-    public CountingServletOutputStream(ServletOutputStream output) {
+    public CountingServletOutputStream(ServletOutputStream output, boolean debug) {
         this.output = new CountingOutputStream(output);
+
+        if (debug) {
+            System.out.println("br.com.labbs.monitor.filter.CountingServletOutputStream.<init>()");
+        }
     }
 
     @Override
@@ -23,13 +27,18 @@ public class CountingServletOutputStream extends ServletOutputStream {
         output.flush();
     }
 
+    @Override
+    public void close() throws IOException {
+        output.close();
+    }
+
     public long getByteCount() {
         return output.getCount();
     }
 
     /**
-     * Copyright (C) 2007 The Guava Authors
-     * An OutputStream that counts the number of bytes written.
+     * Copyright (C) 2007 The Guava Authors An OutputStream that counts the
+     * number of bytes written.
      *
      * @author Chris Nokleberg
      * @since 1.0
@@ -48,7 +57,9 @@ public class CountingServletOutputStream extends ServletOutputStream {
             super(out);
         }
 
-        /** Returns the number of bytes written. */
+        /**
+         * Returns the number of bytes written.
+         */
         public long getCount() {
             return count;
         }

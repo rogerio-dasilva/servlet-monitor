@@ -7,6 +7,9 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * The MetricsFilter class provides a high-level filter that enables collection of (latency, amount and response
@@ -39,6 +42,8 @@ import java.io.IOException;
 public class MetricsCollectorFilter implements Filter {
 
     private static final String BUCKET_CONFIG_PARAM = "buckets";
+    private static final String EXCLUSIONS = "exclusions";
+    private final List<String> exclusions = new ArrayList<String>();
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -53,6 +58,10 @@ public class MetricsCollectorFilter implements Filter {
                     buckets[i] = Double.parseDouble(bucketParams[i]);
                 }
             }
+            if (!isEmpty(filterConfig.getInitParameter(EXCLUSIONS))) {
+                String[] arrayExclusions = filterConfig.getInitParameter(EXCLUSIONS).split(",");
+                exclusions.addAll(Arrays.asList(arrayExclusions));
+            }
         }
         MonitorMetrics.INSTANCE.init(true, buckets);
     }
@@ -65,7 +74,7 @@ public class MetricsCollectorFilter implements Filter {
         }
         final SimpleTimer timer = new SimpleTimer();
         final HttpServletRequest httpRequest = (HttpServletRequest) request;
-        final CountingServletResponse counterResponse = new CountingServletResponse((HttpServletResponse) response);
+        final CountingServletResponse counterResponse = new CountingServletResponse((HttpServletResponse) response, true);
 
         try {
             chain.doFilter(httpRequest, counterResponse);
@@ -76,24 +85,37 @@ public class MetricsCollectorFilter implements Filter {
             String path = httpRequest.getRequestURI();
             //TODO parameterize whether or not to add the context path
             //removes context path from URI
-//            path = path.substring(httpRequest.getContextPath().length());
-            final String method = httpRequest.getMethod();
-            final String statusRange = Integer.toString(counterResponse.getStatus());
-            //TODO why do not use a status code range instead of the specific one?
+            String noPath = path.substring(httpRequest.getContextPath().length());
+            boolean exclude = false;
+            for (String exclusion : exclusions) {
+                if (noPath.startsWith(exclusion)) {
+                    System.out.println("exclude: " + noPath);
+                    exclude = true;
+                }
+            }
+            if (!exclude) {
+                collect(httpRequest, counterResponse, path, elapsedSeconds);
+            }
+        }
+    }
+
+    private void collect(HttpServletRequest httpRequest, CountingServletResponse counterResponse, String path, double elapsedSeconds) throws IOException {
+        final String method = httpRequest.getMethod();
+        final String statusRange = Integer.toString(counterResponse.getStatus());
+        //TODO why do not use a status code range instead of the specific one?
 //            final String statusRange = counterResponse.getStatusRange();
 
-            MonitorMetrics.INSTANCE.requestSeconds.labels(
-                    httpRequest.getScheme(),
-                    statusRange,
-                    method,
-                    path)
-                    .observe(elapsedSeconds);
-            MonitorMetrics.INSTANCE.responseSize.labels(httpRequest.getScheme(),
-                    statusRange,
-                    method,
-                    path)
-                    .inc(counterResponse.getByteCount());
-        }
+        MonitorMetrics.INSTANCE.requestSeconds.labels(
+                httpRequest.getScheme(),
+                statusRange,
+                method,
+                path)
+                .observe(elapsedSeconds);
+        MonitorMetrics.INSTANCE.responseSize.labels(httpRequest.getScheme(),
+                statusRange,
+                method,
+                path)
+                .inc(counterResponse.getByteCount());
     }
 
     @Override
