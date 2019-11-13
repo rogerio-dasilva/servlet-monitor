@@ -14,12 +14,10 @@ public class CountingPrintWriter extends PrintWriter {
     private long count;
     private final PrintWriter writer;
 
-    public CountingPrintWriter(PrintWriter writer, boolean debug) {
+    public CountingPrintWriter(PrintWriter writer) {
         super(writer);
         this.writer = writer;
-        if(debug){
-            System.out.println("br.com.labbs.monitor.filter.CountingPrintWriter.<init>()");
-        }
+        DebugUtil.debug("CountingPrintWriter init");
     }
 
     public long getCount() {

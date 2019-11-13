@@ -8,21 +8,19 @@ import java.io.PrintWriter;
 
 public class CountingServletResponse extends HttpServletResponseWrapper {
 
-    private final boolean debug;
     private final HttpServletResponse response;
     private CountingServletOutputStream output;
     private CountingPrintWriter writer;
 
-    CountingServletResponse(HttpServletResponse response, boolean debug) throws IOException {
+    CountingServletResponse(HttpServletResponse response) throws IOException {
         super(response);
         this.response = response;
-        this.debug = debug;
     }
 
     @Override
     public ServletOutputStream getOutputStream() throws IOException {
         if(output == null){
-            output = new CountingServletOutputStream(response.getOutputStream(), debug);
+            output = new CountingServletOutputStream(response.getOutputStream());
         }
         return output;
     }
@@ -30,7 +28,7 @@ public class CountingServletResponse extends HttpServletResponseWrapper {
     @Override
     public PrintWriter getWriter() throws IOException {
         if(writer == null){
-            writer = new CountingPrintWriter(response.getWriter(), debug);
+            writer = new CountingPrintWriter(response.getWriter());
         }
         return writer;
     }
@@ -41,12 +39,14 @@ public class CountingServletResponse extends HttpServletResponseWrapper {
     }
 
     long getByteCount() throws IOException {
+        long count = 0;
         if(output != null){
-            return output.getByteCount();    
+            count = output.getByteCount();    
         } else if(writer != null){
-            return writer.getCount();
+            count = writer.getCount();
         }
-        return 0;
+        
+        return count;
     }
 
     String getStatusRange() {

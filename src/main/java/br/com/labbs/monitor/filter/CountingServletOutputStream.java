@@ -9,12 +9,10 @@ public class CountingServletOutputStream extends ServletOutputStream {
 
     private final CountingOutputStream output;
 
-    public CountingServletOutputStream(ServletOutputStream output, boolean debug) {
+    public CountingServletOutputStream(ServletOutputStream output) {
         this.output = new CountingOutputStream(output);
 
-        if (debug) {
-            System.out.println("br.com.labbs.monitor.filter.CountingServletOutputStream.<init>()");
-        }
+        DebugUtil.debug("CountingServletOutputStream init");
     }
 
     @Override
@@ -33,7 +31,8 @@ public class CountingServletOutputStream extends ServletOutputStream {
     }
 
     public long getByteCount() {
-        return output.getCount();
+        long count = output.getCount();
+        return count;
     }
 
     /**

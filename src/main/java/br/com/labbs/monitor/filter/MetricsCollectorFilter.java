@@ -43,12 +43,16 @@ public class MetricsCollectorFilter implements Filter {
 
     private static final String BUCKET_CONFIG_PARAM = "buckets";
     private static final String EXCLUSIONS = "exclusions";
+    private static final String DEBUG = "debug";
     private final List<String> exclusions = new ArrayList<String>();
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
         double[] buckets = null;
         if (filterConfig != null) {
+            if (!isEmpty(filterConfig.getInitParameter(DEBUG))) {
+                DebugUtil.setDebug(filterConfig.getInitParameter(DEBUG));
+            }
             // Allow users to override the default bucket configuration
             if (!isEmpty(filterConfig.getInitParameter(BUCKET_CONFIG_PARAM))) {
                 String[] bucketParams = filterConfig.getInitParameter(BUCKET_CONFIG_PARAM).split(",");
@@ -74,37 +78,44 @@ public class MetricsCollectorFilter implements Filter {
         }
         final SimpleTimer timer = new SimpleTimer();
         final HttpServletRequest httpRequest = (HttpServletRequest) request;
-        final CountingServletResponse counterResponse = new CountingServletResponse((HttpServletResponse) response, true);
+        //TODO possible path parameters
+        String path = httpRequest.getRequestURI();
+        //TODO parameterize whether or not to add the context path
+        //removes context path from URI
+        String noPath = path.substring(httpRequest.getContextPath().length());
+        boolean exclude = false;
+        for (String exclusion : exclusions) {
+            if (noPath.startsWith(exclusion)) {
 
-        try {
-            chain.doFilter(httpRequest, counterResponse);
-        } finally {
-            final double elapsedSeconds = timer.elapsedSeconds();
-
-            //TODO possible path parameters
-            String path = httpRequest.getRequestURI();
-            //TODO parameterize whether or not to add the context path
-            //removes context path from URI
-            String noPath = path.substring(httpRequest.getContextPath().length());
-            boolean exclude = false;
-            for (String exclusion : exclusions) {
-                if (noPath.startsWith(exclusion)) {
-                    System.out.println("exclude: " + noPath);
-                    exclude = true;
-                }
-            }
-            if (!exclude) {
-                collect(httpRequest, counterResponse, path, elapsedSeconds);
+                DebugUtil.debug("Exclude ", noPath);
+                exclude = true;
             }
         }
+        if (!exclude) {
+            final CountingServletResponse counterResponse = new CountingServletResponse((HttpServletResponse) response);
+
+            try {
+                chain.doFilter(httpRequest, counterResponse);
+            } finally {
+                final double elapsedSeconds = timer.elapsedSeconds();
+
+                if (!exclude) {
+                    collect(httpRequest, counterResponse, path, elapsedSeconds);
+                }
+            }
+        } else {
+            chain.doFilter(request, response);
+        }
+
     }
 
     private void collect(HttpServletRequest httpRequest, CountingServletResponse counterResponse, String path, double elapsedSeconds) throws IOException {
         final String method = httpRequest.getMethod();
         final String statusRange = Integer.toString(counterResponse.getStatus());
+        final long count = counterResponse.getByteCount();
         //TODO why do not use a status code range instead of the specific one?
 //            final String statusRange = counterResponse.getStatusRange();
-
+        DebugUtil.debug(path, " ; bytes count = ",  count);
         MonitorMetrics.INSTANCE.requestSeconds.labels(
                 httpRequest.getScheme(),
                 statusRange,
@@ -115,7 +126,7 @@ public class MetricsCollectorFilter implements Filter {
                 statusRange,
                 method,
                 path)
-                .inc(counterResponse.getByteCount());
+                .inc(count);
     }
 
     @Override
